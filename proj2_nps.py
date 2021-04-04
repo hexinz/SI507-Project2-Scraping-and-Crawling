@@ -182,7 +182,6 @@ def get_nearby_places(site_object):
     '''
     url = 'http://www.mapquestapi.com/search/v2/radius?key='+secrets.API_KEY+'&origin='\
           +str(site_object.zipcode)+'&radius=10&maxMatches=10&ambiguities=ignore&outFormat=json'
-    print(url)
     url_text = make_url_request_using_cache(url=url, cache=CACHE_DICT, type='json')
     # params = {'key': secrets.API_KEY, 'origin': str(site_object.zipcode), 'radius': 10, 'maxMatches': 10,
     #           'ambiguities': "ignore", 'outFormat': 'json'}
