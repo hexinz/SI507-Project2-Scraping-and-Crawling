@@ -33,10 +33,7 @@ def make_url_request_using_cache(url, cache, params=None, type='text'):
     else:
         print("Fetching")
         time.sleep(1)
-        if params is None:
-            response = requests.get(url)
-        else:
-            response = requests.get(url, params=params)
+        response = requests.get(url)
         if type == 'json':
             cache[url] = response.json()
         else:
@@ -117,10 +114,10 @@ def get_site_instance(site_url):
     '''
     page = make_url_request_using_cache(site_url, CACHE_DICT)
     soup = BeautifulSoup(page, 'html.parser')
-    site_name = soup.find_all('a', class_="Hero-title")
+    site_name = soup.find_all('a', class_="Hero-title")[0].text.strip()
     site_category = soup.find_all('span', class_="Hero-designation")
     if site_category != []:
-        site_category = site_category[0].text
+        site_category = site_category[0].text.strip()
     site_adr = soup.find_all('p', class_="adr")
     if site_adr != []:
         site_adr = str(site_adr[0].find_all('span', itemprop="addressLocality")[0].text.strip()) + ', ' + \
@@ -138,7 +135,7 @@ def get_site_instance(site_url):
     else:
         site_phone = ''
     national_site = NationalSite(
-        name=site_name[0].text,
+        name=site_name,
         category=site_category,
         address=site_adr,
         zipcode=site_zipcode,
@@ -183,10 +180,12 @@ def get_nearby_places(site_object):
     dict
         a converted API return from MapQuest API
     '''
-    params = {'key': secrets.API_KEY, 'origin': site_object.zipcode, 'radius': 10, 'maxMatches': 10,
-              'ambiguities': "ignore", 'outFormat': 'json'}
-    url = 'http://www.mapquestapi.com/search/v2/radius'
-    url_text = make_url_request_using_cache(url=url, cache=CACHE_DICT, params=params, type='json')
+    url = 'http://www.mapquestapi.com/search/v2/radius?key='+secrets.API_KEY+'&origin='\
+          +str(site_object.zipcode)+'&radius=10&maxMatches=10&ambiguities=ignore&outFormat=json'
+    print(url)
+    url_text = make_url_request_using_cache(url=url, cache=CACHE_DICT, type='json')
+    # params = {'key': secrets.API_KEY, 'origin': str(site_object.zipcode), 'radius': 10, 'maxMatches': 10,
+    #           'ambiguities': "ignore", 'outFormat': 'json'}
     # response = requests.get(url, params=params).json()
     return url_text
 
@@ -224,22 +223,25 @@ if __name__ == "__main__":
                 result_dict = {}
                 if state.isdigit():
                     if 1 <= int(state) <= len(result_list):
-                        IsFirstStep = 1
-                        result_dict = get_nearby_places(result_list[int(state)-1])
-                        print('-' * 34)
-                        print('Places near ' + result_list[int(state)-1].name)
-                        print('-' * 34)
-                        for item in result_dict['searchResults']:
-                            category = item['fields'].get('group_sic_code_name_ext','no category')
-                            address = item['fields'].get('address', 'no address')
-                            city = item['fields'].get('city', 'no city')
-                            if category == '':
-                                category = 'no category'
-                            if address == '':
-                                address = 'no address'
-                            if city == '':
-                                city = 'no city'
-                            print('- ' + item.get('name') + ' ('+category+'): ' + address + ', ' + city)
+                        if result_list[int(state)-1].zipcode == '':
+                            print('Zipcode does not exist')
+                        else:
+                            IsFirstStep = 1
+                            result_dict = get_nearby_places(result_list[int(state)-1])
+                            print('-' * 34)
+                            print('Places near ' + result_list[int(state)-1].name)
+                            print('-' * 34)
+                            for item in result_dict['searchResults']:
+                                category = item['fields'].get('group_sic_code_name_ext','no category')
+                                address = item['fields'].get('address', 'no address')
+                                city = item['fields'].get('city', 'no city')
+                                if category == '':
+                                    category = 'no category'
+                                if address == '':
+                                    address = 'no address'
+                                if city == '':
+                                    city = 'no city'
+                                print('- ' + item.get('name') + ' ('+category+'): ' + address + ', ' + city)
                     else:
                         print('[Error] Invalid input')
                         continue
